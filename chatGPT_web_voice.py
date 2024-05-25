@@ -7,9 +7,9 @@ import undetected_chromedriver as uc
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-# from selenium.webdriver.support.ui import WebDriverWait
-# from selenium.webdriver.support import expected_conditions as EC
-# from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
 
 from getpass import getpass
 
@@ -97,29 +97,51 @@ def is_logged_in(driver):
     """
     signUp_button = None
     logIn_button = None
+    continueButton = None
 
     try:
         # Define waiting time (adjust as needed)
-        # wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, 10)
         
         # Try finding Sign Up button with a timeout
         # wait.until(EC.invisibility_of_element_located((By.XPATH, "//button[text()='Sign Up']")))
         # wait.until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[1]/div')))
-        signUp_button = driver.find_element(By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[1]/div')
+        try :
+            signUp_button = driver.find_element(By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[1]/div')
+            print("Found Sign up button.")
+
+        except NoSuchElementException:
+            print("Sign up button not present")
+            signUp_button = False
         # Try finding Log In button with a timeout
         # wait.until(EC.invisibility_of_element_located((By.XPATH, "//button[text()='Log in']")))
         # wait.until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[2]/div')))
-        logIn_button = driver.find_element(By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[2]/div')
+        try:
+            logIn_button = driver.find_element(By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[2]/div')
+            print("Found Log In button.")
         
+        except NoSuchElementException:
+            print("Log In button not present")
+            logIn_button = False
+        try:
+            continueButton = driver.find_element(By.XPATH, '/html/body/div[1]/main/section/div/div/div/form/div[2]/button')
+            print("Found Continue button.")
+        except:
+            print("Continue button not present")
+            continueButton = False
         # If no exceptions occur, likely logged in
         # return True
-        if signUp_button and logIn_button:
+        if signUp_button or logIn_button or continueButton:
             return False
+        else:
+            return True
     # except NoSuchElementException:
     #     # One or both buttons might be present, indicating not logged in
     #     return False
     except Exception as e:
         # Handle other unexpected exceptions
+        # print(f"Unexpected error: {e}")
+        # return False
         print(f"Error: {e}")
         if any([logIn_button, signUp_button]):
             return False
@@ -137,6 +159,38 @@ def send_text(driver, text):
     print(f"{'- - '*10} \n{text} \n SENT !")
     time.sleep(10)
 
+# def extract_assistant_texts(driver):
+#     """
+#     Extracts text from conversation turns authored by the assistant.
+
+#     Args:
+#         driver: The Selenium WebDriver instance.
+
+#     Returns:
+#         A list of strings containing the extracted assistant texts.
+#     """
+#     assistant_texts = []
+#     try:
+#         # Wait for conversation elements to load (adjust timeout as needed)
+#         wait = WebDriverWait(driver, 10)
+#         # time.sleep(10)
+#         conversation_turns = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "group/conversation-turn")))
+#         # conversation_turns = driver.find_elements(By.CLASS_NAME, "group/conversation-turn")
+#         print(f"Conversations found !!!\n")
+#         print("\n- ".join(conversation_turns))
+#         if not len(conversation_turns):
+#             return assistant_texts
+#         for turn in conversation_turns[-10:]: # LAST FEW ONLY NEEDED
+#             # Check for inner div with assistant role
+#             if turn.find_element(By.XPATH, ".//div[@data-message-author-role='assistant']"):
+#                 # Extract text from the conversation turn
+#                 text = turn.text.strip()
+#                 assistant_texts.append(text)
+#     except Exception as e:
+#         print(f"Error extracting assistant texts: {e}")
+    
+#     return assistant_texts
+
 def extract_assistant_texts(driver):
     """
     Extracts text from conversation turns authored by the assistant.
@@ -148,18 +202,14 @@ def extract_assistant_texts(driver):
         A list of strings containing the extracted assistant texts.
     """
     assistant_texts = []
-    try:
-        # Wait for conversation elements to load (adjust timeout as needed)
-        # wait = WebDriverWait(driver, 10)
-        time.sleep(10)
-        # conversation_turns = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "group/conversation-turn")))
-        conversation_turns = driver.find_elements(By.CLASS_NAME, "group/conversation-turn")
-        for turn in conversation_turns[-10:]: # LAST FEW ONLY NEEDED
-            # Check for inner div with assistant role
-            if turn.find_element(By.XPATH, ".//div[@data-message-author-role='assistant']"):
-                # Extract text from the conversation turn
-                text = turn.text.strip()
-                assistant_texts.append(text)
+    try:        
+        # Find elements with data-message-author-role='assistant'
+        assistant_messages = driver.find_elements(By.CSS_SELECTOR, "div[data-message-author-role='assistant'] div.markdown.prose")
+        # Extract and print the text from these elements
+        for message in assistant_messages:
+            # print(message.text)
+            assistant_texts.append(message.text)
+
     except Exception as e:
         print(f"Error extracting assistant texts: {e}")
     
@@ -173,7 +223,8 @@ config = dotenv_values(".env")
 if __name__ == "__main__":
     driver = uc.Chrome(options=options)
     driver.get(chatgpt_url)
-
+    driver.implicitly_wait(10)
+    
     logged_in = False
 
     def recording_started():
@@ -245,30 +296,62 @@ if __name__ == "__main__":
     time.sleep(5)
 
     if check_login_required(driver):
+        try_login_countt = 0
         print("Trying to log in")
         time.sleep(2)
-        driver = do_login(driver, user_email=config['USER_EMAIL'])
-        if is_logged_in(driver):
-            logged_in = True
-            print("Login successful !")
-            time.sleep(2)
+        driver = do_login(driver, user_email=config['USER_EMAIL'], user_password=config["USER_PASSWORD"])
+        while try_login_countt < 3:
+            if is_logged_in(driver):
+                logged_in = True
+                print("Login successful !")
+                time.sleep(2)
+                break
+            else:
+                print("Maybe check the credentials and try to login manually ?")
+                input("PRESS ENTER WHEN DONE MANUAL LOGIN ... ")
+            try_login_countt += 1
+            
 
     if logged_in:
         print("Initializing STT and trying to do the inputs ... ")
         time.sleep(2)
         user_input = ""
         countt = 0
+        empty_user_input_countt = 0
         while True:
             user_input = STT()
             countt+=1
-            if not user_input:
+            
+            # if empty_user_input_countt > 5 :
+                # wait for some keyboard [combination] command and then continue
+                # continue
+            
+            if empty_user_input_countt > 2 :
+                print("Empty user_inputs for more than 5 time...")
+                for i in range(3):
+                    _ = input("Press 1 or ENTER to continue, 0 to stop : ").strip()
+                    if _ not in ["", '1', '0']:
+                        continue
+                    break
+
+                if _ == '0':
+                    break
+                empty_user_input_countt = 0
                 continue
+            
+            if not user_input:
+                empty_user_input_countt += 1
+                continue
+            
             send_text(driver, user_input)
             time.sleep(5)
             gpt_responses = extract_assistant_texts(driver)
-            print(gpt_responses[-1])
+            if gpt_responses:
+                print(gpt_responses[-1])
             user_input = ""
             time.sleep(0.5)
+    else:
+        print("Login unsuccessful. Try again after sometime ...")
 
     driver.close()
 
