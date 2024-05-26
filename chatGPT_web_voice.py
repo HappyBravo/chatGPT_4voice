@@ -13,6 +13,9 @@ from selenium.common.exceptions import NoSuchElementException
 
 from getpass import getpass
 
+from TTS_withExpression.tts import TTS_withExpression
+import warnings
+
 WAITER = 5
 INPUT_WAITER = 3
 countt = 0
@@ -28,6 +31,9 @@ options = uc.ChromeOptions()
 #         print("Found it")
 #     else:
 #         print("Sorry, couldn't find it.")
+
+# Settings the warnings to be ignored 
+warnings.filterwarnings('ignore')
 
 def check_login_required(_driver):
     """
@@ -101,7 +107,7 @@ def is_logged_in(driver):
 
     try:
         # Define waiting time (adjust as needed)
-        wait = WebDriverWait(driver, 10)
+        # wait = WebDriverWait(driver, 10)
         
         # Try finding Sign Up button with a timeout
         # wait.until(EC.invisibility_of_element_located((By.XPATH, "//button[text()='Sign Up']")))
@@ -134,6 +140,8 @@ def is_logged_in(driver):
         if signUp_button or logIn_button or continueButton:
             return False
         else:
+            print("No buttons found -> login successful !")
+            time.sleep(0.5)
             return True
     # except NoSuchElementException:
     #     # One or both buttons might be present, indicating not logged in
@@ -143,7 +151,7 @@ def is_logged_in(driver):
         # print(f"Unexpected error: {e}")
         # return False
         print(f"Error: {e}")
-        if any([logIn_button, signUp_button]):
+        if any([logIn_button, signUp_button, continueButton]):
             return False
         
         print("No buttons found -> login successful !")
@@ -156,8 +164,9 @@ def send_text(driver, text):
 
     # Enter your desired text
     text_area.send_keys(text, Keys.ENTER)
-    print(f"{'- - '*10} \n{text} \n SENT !")
-    time.sleep(10)
+    print(f"{'- - '*15} \n{text} \nSENT !")
+    time.sleep(5)   # DEPENFING ON THE INTERNET SPEED
+                    # KEEP THIS LONG IF YOU DO LONG CONVERSATIONS 
 
 # def extract_assistant_texts(driver):
 #     """
@@ -223,7 +232,9 @@ config = dotenv_values(".env")
 if __name__ == "__main__":
     driver = uc.Chrome(options=options)
     driver.get(chatgpt_url)
-    driver.implicitly_wait(10)
+    # driver.implicitly_wait(10)
+
+    time.sleep(5)
     
     logged_in = False
 
@@ -287,13 +298,11 @@ if __name__ == "__main__":
                     recorder.stop()
                     break
 
-            print("Done. Now we should exit.")
+            # print("Done. Now we should exit.")
             stt_output = " ".join(full_sentences)
             print("You said - ")
-            print(" ".join(full_sentences))
+            print(" ".join(full_sentences), end = "\n")
         return stt_output
-
-    time.sleep(5)
 
     if check_login_required(driver):
         try_login_countt = 0
@@ -311,27 +320,35 @@ if __name__ == "__main__":
                 input("PRESS ENTER WHEN DONE MANUAL LOGIN ... ")
             try_login_countt += 1
             
+    ref_audio = "./__temp__/NEW Sage Voice Lines with other Agents  VALORANT.mp3"
+    out_audio_file = "output.wav"
 
     if logged_in:
+        print("Initializing TTS...")
+        tts_engine = TTS_withExpression()
+
         print("Initializing STT and trying to do the inputs ... ")
         time.sleep(2)
         user_input = ""
         countt = 0
         empty_user_input_countt = 0
+        empty_user_input_limit = 3
         while True:
             user_input = STT()
-            countt+=1
+            countt += 1
             
             # if empty_user_input_countt > 5 :
                 # wait for some keyboard [combination] command and then continue
                 # continue
             
-            if empty_user_input_countt > 2 :
-                print("Empty user_inputs for more than 5 time...")
+            if empty_user_input_countt > empty_user_input_limit-1 :
+                print(f"Empty user_inputs for more than {empty_user_input_limit} times...")
                 for i in range(3):
                     _ = input("Press 1 or ENTER to continue, 0 to stop : ").strip()
                     if _ not in ["", '1', '0']:
                         continue
+                    break
+                else:
                     break
 
                 if _ == '0':
@@ -344,17 +361,27 @@ if __name__ == "__main__":
                 continue
             
             send_text(driver, user_input)
+            empty_user_input_countt = 0
             time.sleep(5)
             gpt_responses = extract_assistant_texts(driver)
+            # print(gpt_responses)
             if gpt_responses:
-                print(gpt_responses[-1])
+                print("ChatGPT [002] -")
+                response = gpt_responses[-1]
+                print(gpt_responses[-1], end="\n")
+
+                tts_engine.cook_voice(text=response, 
+                                      ref_audio_path=ref_audio)
+                tts_engine.play_voice(audio_path=out_audio_file)
+                empty_user_input_countt = 0
+
             user_input = ""
-            time.sleep(0.5)
+            time.sleep(2)
     else:
         print("Login unsuccessful. Try again after sometime ...")
 
     driver.close()
 
-    time.sleep(4)
+    time.sleep(2)
     print(f"Loop ran for {countt} times...")
     input("Enter to EXIT...")

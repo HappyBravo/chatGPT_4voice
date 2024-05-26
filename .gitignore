@@ -1,3 +1,6 @@
 ***/chatGPT_web_voice_env/***
+***/chatGPT_web_voice_env2/***
 ***/__pycache__/***
 .env
+***/__temp__/***
+***/output.wav
