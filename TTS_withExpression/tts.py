@@ -59,7 +59,7 @@ class TTS_withExpression():
             else:
                 pygame.mixer.stop()
             self.stop_event.set()
-            time.sleep(1)
+            # time.sleep(1)
             return False
         
     def monitor_audio_time(self):
@@ -73,9 +73,9 @@ class TTS_withExpression():
                     pygame.mixer.stop()
                 print("Audio stopped due to timeout.")
                 self.stop_event.set()
-                time.sleep(1)
+                # time.sleep(1)
                 return False
-            time.sleep(1)
+            # time.sleep(1)
 
     def listen_for_key_press(self):
         # Listen for space key press
@@ -92,8 +92,16 @@ class TTS_withExpression():
             self.sound_length = int(math.ceil(pygame.mixer.Sound.get_length(self._sound)))
             self._sound.play()
             audio_start_time = time.time()
-            flag = 0
+            # flag = 0
             
+            # - - - - - - - - - - - - - - - - - - - - - - - - - 
+            # THE LOGIC IS -
+            # -- MAKE TWO THREAD, 
+            #     -- SEE IF USER PRESSES SPACE BUTTON ON KEYBOARD, STOP THE AUDIO RESPONSE
+            #     -- OR IF THE AUDIO RESPONSE HAS BEEN PLAYED. THEN STOP THE OTHER THREAD 
+            # -- FINALLY MAKE SURE THAT BOTH THREADS ARE STOPPED
+            # - - - - - - - - - - - - - - - - - - - - - - - - - 
+
             # Initialize stop event
             self.stop_event = threading.Event()
             
@@ -104,15 +112,6 @@ class TTS_withExpression():
              # Start thread for listening for key presses
             key_listener_thread = threading.Thread(target=self.listen_for_key_press)
             key_listener_thread.start()
-
-            # while True :
-            #     # if (time.time() - startt) > _length:
-            #     #     flag = 1
-            #     # Collect all event until released
-            #     with Listener(on_press = self.checkPressSpace) as listener:
-            #         listener.join()
-            #     _sound.stop()
-            #     break
 
             # Check if any thread has finished
             while monitor_thread.is_alive() or key_listener_thread.is_alive():

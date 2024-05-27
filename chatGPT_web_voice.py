@@ -27,13 +27,6 @@ options = uc.ChromeOptions()
 # driver = uc.Chrome() #headless=True,use_subprocess=False)
 # driver = webdriver.Chrome()
 
-# def checkLogin():
-#     # Let's find the text
-#     if driver.find_elements(By.XPATH, "//*[contains(text(), 'log in')]"):
-#         print("Found it")
-#     else:
-#         print("Sorry, couldn't find it.")
-
 # Settings the warnings to be ignored 
 warnings.filterwarnings('ignore')
 
@@ -61,19 +54,12 @@ def check_login_required(_driver):
 def do_login(driver, user_email, user_password = ""):
     time.sleep(5)
     # wait = WebDriverWait(driver, 10)
-    
-    # Find the button using XPath
-
-    # login_button = driver.find_element(By.XPATH, "//button[text()='Log in']")
-
-    # wait.until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[2]')))
     try :
         login_button = driver.find_element(By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[2]')
     except NoSuchElementException:
         print("Trying another method to search Login button")
         login_button = driver.find_element(By.CSS_SELECTOR('[data-testid="login-button"]'))
-    # login_button = driver.find_element(By.CSS_SELECTOR, '[data-testid="tesging button"]')
-
+   
     # Click the button
     login_button.click()
     time.sleep(2)
@@ -83,7 +69,6 @@ def do_login(driver, user_email, user_password = ""):
     email_input = driver.find_element(By.CLASS_NAME, "email-input")
 
     # Enter your email address and press ENTER
-    # email_input.send_keys("your_email_id@example.com")
     email_input.send_keys(user_email, Keys.ENTER)
 
     time.sleep(2)
@@ -95,11 +80,11 @@ def do_login(driver, user_email, user_password = ""):
     # Enter your desired keys
     if user_password:
         password_input.send_keys(user_password, Keys.ENTER)
-        time.sleep(10)
+        time.sleep(5)
     else:
         user_password = getpass()
         password_input.send_keys(user_password, Keys.ENTER)
-        time.sleep(10)
+        time.sleep(5)
     return driver 
         
 def is_logged_in(driver):
@@ -179,37 +164,6 @@ def send_text(driver, text):
     time.sleep(5)   # DEPENFING ON THE INTERNET SPEED
                     # KEEP THIS LONG IF YOU DO LONG CONVERSATIONS 
 
-# def extract_assistant_texts(driver):
-#     """
-#     Extracts text from conversation turns authored by the assistant.
-
-#     Args:
-#         driver: The Selenium WebDriver instance.
-
-#     Returns:
-#         A list of strings containing the extracted assistant texts.
-#     """
-#     assistant_texts = []
-#     try:
-#         # Wait for conversation elements to load (adjust timeout as needed)
-#         wait = WebDriverWait(driver, 10)
-#         # time.sleep(10)
-#         conversation_turns = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "group/conversation-turn")))
-#         # conversation_turns = driver.find_elements(By.CLASS_NAME, "group/conversation-turn")
-#         print(f"Conversations found !!!\n")
-#         print("\n- ".join(conversation_turns))
-#         if not len(conversation_turns):
-#             return assistant_texts
-#         for turn in conversation_turns[-10:]: # LAST FEW ONLY NEEDED
-#             # Check for inner div with assistant role
-#             if turn.find_element(By.XPATH, ".//div[@data-message-author-role='assistant']"):
-#                 # Extract text from the conversation turn
-#                 text = turn.text.strip()
-#                 assistant_texts.append(text)
-#     except Exception as e:
-#         print(f"Error extracting assistant texts: {e}")
-    
-#     return assistant_texts
 
 def extract_assistant_texts(driver):
     """
@@ -288,6 +242,7 @@ config = dotenv_values(".env")
 
 if __name__ == "__main__":
     driver = uc.Chrome(options=options)
+    driver.set_window_size(800, 600)
     # driver.minimize_window()
 
     driver.get(chatgpt_url)
@@ -338,10 +293,8 @@ if __name__ == "__main__":
             stt_output = ""
             _countt = 0
             full_sentences = []
-            # empty_input_countt = 0
             empty_user_input_countt = 0
             empty_user_input_limit = 3
-            # recordingg = False
             while True:
                 _wait = 0
                 user_text = ""
@@ -369,40 +322,26 @@ if __name__ == "__main__":
                 init_text = " ".join(full_sentences)
                 # user_text = recorder.text()
                 recorder.start()
-
-                # if not _countt:
-                #     recorder.start()
-                #     print(f"Waiting {WAITER} sec...")
-                #     time.sleep(WAITER)
-                # else:
-                #     print(f"Waiting {INPUT_WAITER} sec...")
-                #     time.sleep(INPUT_WAITER)
                 
                 _wait = WAITER*(not bool(_countt)) + INPUT_WAITER*bool(_countt) 
                 print(f"Waiting {_wait} sec...")
                 time.sleep(_wait)
                 
                 user_text = recorder.text()
-                print(user_text)
+                # print(user_text)
                 if len(set(user_text.strip().split())) > 1 or \
                                         user_text.strip().lower() not in ["", "you.", "you .", "you"]: # 0: 
                                                             # there are some ghoset inputs of "You. You. You." 
                                                             # - maybe due to fan or some noise 🤔
                     full_sentences.append(user_text)
                     _countt += 1
-                    # recordingg = True
                     continue
                 else :
                     empty_user_input_countt += 1
 
                 if len(" ".join(full_sentences)) == len(init_text) and _countt > 0:
-                    # countt += 1
-                    # recorder.stop()
                     break
-                # if empty_user_input_countt >= empty_user_input_limit:
-                    # recorder.stop()
-                    # break
-                # _countt += 1
+
             print("Stopping STT...")
             # print("Done. Now we should exit.")
             recorder.stop()
@@ -434,7 +373,9 @@ if __name__ == "__main__":
     out_audio_file = "output.wav"
 
     if logged_in:
-        # driver.minimize_window() # <--- CAN'T DO THIS 🫥
+        # driver.minimize_window()  # <-- CAN'T DO THIS 🫥
+                                    #     SELENIUM GOES OUT OF FOCUS 
+                                    #     SO ELEMENTS ARE NOT VISIBLE TO THE CODE. 
 
         print("Initializing TTS...")
         tts_engine = TTS_withExpression()
@@ -446,24 +387,6 @@ if __name__ == "__main__":
         empty_user_input_countt = 0
         empty_user_input_limit = 2
         while True:
-            # if empty_user_input_countt > 5 :
-                # wait for some keyboard [combination] command and then continue
-                # continue
-            
-            # if empty_user_input_countt > empty_user_input_limit-1 :
-            #     print(f"Empty user_inputs for more than {empty_user_input_limit} times...")
-            #     for i in range(3):
-            #         _ = input("Press 1 or ENTER to continue, 0 to stop : ").strip()
-            #         if _ not in ["", '1', '0']:
-            #             continue
-            #         break
-            #     else:
-            #         break
-
-            #     if _ == '0':
-            #         break
-            #     empty_user_input_countt = 0
-            #     continue
             
             user_input = STT()
             countt += 1
@@ -484,8 +407,14 @@ if __name__ == "__main__":
                 response = gpt_responses[-1]
                 print(gpt_responses[-1], end="\n")
 
+                # # # # # # # # # # # # # 
+                # NEED TO MAKE A FUNCTION FOR PRE-PROCESSING
+                # -- CODE BLOCKS CAN BE EXCLUDED IN PRE-PREPROCESSING
+                # -- WORDS WHICH IS NON-ENGLISH OR WORDS WHICH ARE NOT OF YOUR TTS's MODEL LANGUAGE SHOULD BE CHANGED
+                # 
                 response = response.replace("ダーリン", "dah-ring") # PREPROCESSION BEFORE TTS 
-                
+                # # # # # # # # # # # #
+
                 tts_engine.cook_voice(text=response, 
                                       ref_audio_path=ref_audio)
                 tts_engine.play_voice(audio_path=out_audio_file)
