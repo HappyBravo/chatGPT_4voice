@@ -12,7 +12,9 @@ class TTS_withExpression():
                  TTS_model = "tts_models/multilingual/multi-dataset/xtts_v2",
                  useGPU = True):
         self.sound_length = 0
+        self._sound = None
         self.device = "cpu"
+        self.stop_event = None
         if useGPU:
             # self.device = self.get_device(useGPU)
             self.device = "cuda" if torch.cuda.is_available() else "cpu" 
@@ -49,18 +51,28 @@ class TTS_withExpression():
         print(f"Audio generated to '{output_file}'...")
 
     def checkPressSpace(self, key):
-        if key == Key.space or not pygame.mixer.get_busy() or (time.time() - audio_start_time > self.sound_length)  :
+        if key == Key.space or not pygame.mixer.get_busy():
             print("stopping audio ...")
-            pygame.mixer.stop()
+            if self._sound:
+                self._sound.stop()
+                self._sound = None
+            else:
+                pygame.mixer.stop()
+            self.stop_event.set()
             time.sleep(1)
             return False
         
     def monitor_audio_time(self):
         # while pygame.mixer.get_busy():
         while True:
-            if time.time() - audio_start_time > self.sound_length:
-                pygame.mixer.stop()
+            if time.time() - audio_start_time > 1 + self.sound_length:
+                if self._sound:
+                    self._sound.stop()
+                    self._sound = None
+                else:
+                    pygame.mixer.stop()
                 print("Audio stopped due to timeout.")
+                self.stop_event.set()
                 time.sleep(1)
                 return False
             time.sleep(1)
@@ -69,16 +81,22 @@ class TTS_withExpression():
         # Listen for space key press
         with Listener(on_press=self.checkPressSpace) as listener:
             listener.join()
+        self.stop_event.set()
 
     def play_voice(self, audio_path = ""):
+        global audio_start_time
+
         if os.path.exists(audio_path):
-            _sound = pygame.mixer.Sound(audio_path)
-            self.sound_length = int(math.ceil(pygame.mixer.Sound.get_length(_sound)))
-            _sound.play()
-            global audio_start_time
+            self._sound = pygame.mixer.Sound(audio_path)
+            
+            self.sound_length = int(math.ceil(pygame.mixer.Sound.get_length(self._sound)))
+            self._sound.play()
             audio_start_time = time.time()
             flag = 0
-
+            
+            # Initialize stop event
+            self.stop_event = threading.Event()
+            
             # Start a separate thread to monitor audio playback time
             monitor_thread = threading.Thread(target=self.monitor_audio_time)
             monitor_thread.start()
@@ -95,6 +113,14 @@ class TTS_withExpression():
             #         listener.join()
             #     _sound.stop()
             #     break
+
+            # Check if any thread has finished
+            while monitor_thread.is_alive() or key_listener_thread.is_alive():
+                if not monitor_thread.is_alive() or not key_listener_thread.is_alive():
+                    print("Stopping threads ...")
+                    self.stop_event.set()
+                    break
+                # time.sleep(1)
         return
 
         

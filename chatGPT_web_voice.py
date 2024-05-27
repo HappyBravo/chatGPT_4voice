@@ -22,6 +22,8 @@ countt = 0
 options = uc.ChromeOptions()
 # options.add_argument("--window-size=800,600")
 # options.add_argument("--no-sandbox")
+# options.add_argument('--headless') # HEADLESS IS NOT WORKING... 🫤
+# options.add_argument("--headless=new")
 # driver = uc.Chrome() #headless=True,use_subprocess=False)
 # driver = webdriver.Chrome()
 
@@ -58,11 +60,18 @@ def check_login_required(_driver):
 
 def do_login(driver, user_email, user_password = ""):
     time.sleep(5)
-    # pass
+    # wait = WebDriverWait(driver, 10)
+    
     # Find the button using XPath
-    # login_button = driver.find_element(By.XPATH, "//button[text()='Log in']")
-    login_button = driver.find_element(By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[2]')
 
+    # login_button = driver.find_element(By.XPATH, "//button[text()='Log in']")
+
+    # wait.until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[2]')))
+    try :
+        login_button = driver.find_element(By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[2]')
+    except NoSuchElementException:
+        print("Trying another method to search Login button")
+        login_button = driver.find_element(By.CSS_SELECTOR('[data-testid="login-button"]'))
     # login_button = driver.find_element(By.CSS_SELECTOR, '[data-testid="tesging button"]')
 
     # Click the button
@@ -70,6 +79,7 @@ def do_login(driver, user_email, user_password = ""):
     time.sleep(2)
 
     # Find the email input field
+    # wait.until(EC.invisibility_of_element_located(((By.CLASS_NAME, "email-input"))))
     email_input = driver.find_element(By.CLASS_NAME, "email-input")
 
     # Enter your email address and press ENTER
@@ -79,6 +89,7 @@ def do_login(driver, user_email, user_password = ""):
     time.sleep(2)
 
     # Find the input using ID
+    # wait.until(EC.invisibility_of_element_located((By.ID, "password")))
     password_input = driver.find_element(By.ID, "password")
 
     # Enter your desired keys
@@ -211,7 +222,53 @@ def extract_assistant_texts(driver):
         A list of strings containing the extracted assistant texts.
     """
     assistant_texts = []
-    try:        
+    try:
+        # ----------- SELENIUM BROWSER NEEDS TO BE IN FOCUS -------------
+        # ----------- BECAUSE OF THIS, THESE WERE NOT WORKING -----------
+        # ----------- COMMENTED OUT -------------------------------------
+        # THE LOGIC WAS -
+        #     IF THERE IS ACTIVE ELEMET ::after AFTER THE LAST PARAGRAPH,
+        #     OR THE SEND BUTTON IS ACTIVE
+        #     MEANIG CHATGPT IS WRITING SOME OUTPUT,
+        #     WE SHOULD WAITER
+        #     BUT THIS IS NOT WORKING IF I MINIMISE THE WINDOW 
+        #
+        # AND IF THE BROWSER WINDOW IS FOCUSED, 
+        #     THERE IS NO NEED TO LOOK FOR THE ACTIVE ELEMENT AS time.sleep() DOES THE JOB
+        # ----------------------------------------------------------------
+        # ----------------------------------------------------------------
+        # ----------------------------------------------------------------
+
+        # driver.implicitly_wait(5)
+
+        # Wait until the button is present and becomes disabled
+        # WebDriverWait(driver, 10).until(
+        #     EC.presence_of_element_located((By.XPATH, "//*[@id='__next']/div[1]/div[2]/main/div[1]/div[2]/div[1]/div/form/div/div[2]/div/div/button[@data-testid='fruitjuice-send-button'][@disabled]"))
+        # )
+
+        # element_locator = (By.CSS_SELECTOR, "div[data-message-author-role='assistant'] div.markdown.prose")
+
+        # Wait until the last element is present
+        # WebDriverWait(driver, 10).until(EC.presence_of_element_located(element_locator))
+
+        # # # Now, wait until the last element stops updating (indicating animation is complete)
+        # last_element = driver.find_elements(*element_locator)[-1]
+        # WebDriverWait(driver, 10).until(
+        #     lambda driver: last_element == driver.find_elements(*element_locator)[-1]
+        # )
+        # # Wait until the :after pseudo-element disappears
+        # WebDriverWait(driver, 10).until(
+        #     lambda driver: not last_element.find_elements(By.CSS_SELECTOR, "::after")
+        # )
+        # # Wait until the :after pseudo-element disappears
+        # WebDriverWait(driver, 10).until(EC.staleness_of(assistant_messages[-1]))
+
+        # # Wait until the button is present and not disabled
+        # WebDriverWait(driver, 10).until(
+        #     EC.presence_of_element_located((By.CSS_SELECTOR, "[data-testid='fruitjuice-send-button'][disabled])")))
+
+        time.sleep(2)
+      
         # Find elements with data-message-author-role='assistant'
         assistant_messages = driver.find_elements(By.CSS_SELECTOR, "div[data-message-author-role='assistant'] div.markdown.prose")
         # Extract and print the text from these elements
@@ -231,8 +288,10 @@ config = dotenv_values(".env")
 
 if __name__ == "__main__":
     driver = uc.Chrome(options=options)
+    # driver.minimize_window()
+
     driver.get(chatgpt_url)
-    # driver.implicitly_wait(10)
+    # driver.implicitly_wait(5)
 
     time.sleep(5)
     
@@ -251,8 +310,8 @@ if __name__ == "__main__":
         'language': 'en',
         'silero_sensitivity': 0.4,
         'webrtc_sensitivity': 2,
-        'post_speech_silence_duration': 0.4,
-        'min_length_of_recording': 0.5,
+        'post_speech_silence_duration': 0.3,
+        'min_length_of_recording': 0.3,
         'min_gap_between_recordings': 0,
         'enable_realtime_transcription': True,
         'realtime_processing_pause': 0.2,
@@ -268,40 +327,91 @@ if __name__ == "__main__":
     }
 
     def STT():
-        stt_output = ""
-        countt = 0
+        # # # # # # # # # # # # #
+        # THIS NEEDS TO BE INSIDE __name__ == "__main__"
+        # # # # # # # # # # # # # 
+        _decide = ""
+
         with AudioToTextRecorder(**recorder_config) as recorder:
             # print('Say "Jarvis" then speak.')
             init_text = ""
+            stt_output = ""
+            _countt = 0
             full_sentences = []
+            # empty_input_countt = 0
+            empty_user_input_countt = 0
+            empty_user_input_limit = 3
+            # recordingg = False
             while True:
+                _wait = 0
+                user_text = ""
+                if empty_user_input_countt >= empty_user_input_limit :
+                    print(f"Empty user_inputs for more than {empty_user_input_limit} times...")
+                    
+                    _decide = ""
+                    for _ in range(3):
+                        _decide = input("Press 1 or ENTER to continue, 0 to stop : ").strip()
+                        if _decide not in ["", '1', '0']:
+                            continue
+                        break
+                    else:
+                        # recorder.stop()
+                        print("Exiting STT...")
+                        break
+
+                    if _decide == '0':
+                        break
+                    empty_user_input_countt = 0
+                    full_sentences = []
+                    _countt = 0
+                    continue
+            
                 init_text = " ".join(full_sentences)
                 # user_text = recorder.text()
                 recorder.start()
 
-                if countt == 0:
-                    print(f"Waiting {WAITER} sec...")
-                    time.sleep(WAITER)
-                else:
-                    print(f"Waiting {INPUT_WAITER} sec...")
-                    time.sleep(INPUT_WAITER)
+                # if not _countt:
+                #     recorder.start()
+                #     print(f"Waiting {WAITER} sec...")
+                #     time.sleep(WAITER)
+                # else:
+                #     print(f"Waiting {INPUT_WAITER} sec...")
+                #     time.sleep(INPUT_WAITER)
+                
+                _wait = WAITER*(not bool(_countt)) + INPUT_WAITER*bool(_countt) 
+                print(f"Waiting {_wait} sec...")
+                time.sleep(_wait)
                 
                 user_text = recorder.text()
-
-                if len(user_text) > 0:
+                print(user_text)
+                if len(set(user_text.strip().split())) > 1 or \
+                                        user_text.strip().lower() not in ["", "you.", "you .", "you"]: # 0: 
+                                                            # there are some ghoset inputs of "You. You. You." 
+                                                            # - maybe due to fan or some noise 🤔
                     full_sentences.append(user_text)
-
-                if len(" ".join(full_sentences)) != len(init_text):
-                    countt += 1
+                    _countt += 1
+                    # recordingg = True
                     continue
-                else:
-                    recorder.stop()
-                    break
+                else :
+                    empty_user_input_countt += 1
 
+                if len(" ".join(full_sentences)) == len(init_text) and _countt > 0:
+                    # countt += 1
+                    # recorder.stop()
+                    break
+                # if empty_user_input_countt >= empty_user_input_limit:
+                    # recorder.stop()
+                    # break
+                # _countt += 1
+            print("Stopping STT...")
             # print("Done. Now we should exit.")
+            recorder.stop()
             stt_output = " ".join(full_sentences)
-            print("You said - ")
-            print(" ".join(full_sentences), end = "\n")
+            if stt_output.strip():
+                print("You said - ")
+                print(" ".join(full_sentences), end = "\n")
+            if _decide == "0":
+                stt_output = "<< EXIT >>"
         return stt_output
 
     if check_login_required(driver):
@@ -324,6 +434,8 @@ if __name__ == "__main__":
     out_audio_file = "output.wav"
 
     if logged_in:
+        # driver.minimize_window() # <--- CAN'T DO THIS 🫥
+
         print("Initializing TTS...")
         tts_engine = TTS_withExpression()
 
@@ -332,37 +444,39 @@ if __name__ == "__main__":
         user_input = ""
         countt = 0
         empty_user_input_countt = 0
-        empty_user_input_limit = 3
+        empty_user_input_limit = 2
         while True:
-            user_input = STT()
-            countt += 1
-            
             # if empty_user_input_countt > 5 :
                 # wait for some keyboard [combination] command and then continue
                 # continue
             
-            if empty_user_input_countt > empty_user_input_limit-1 :
-                print(f"Empty user_inputs for more than {empty_user_input_limit} times...")
-                for i in range(3):
-                    _ = input("Press 1 or ENTER to continue, 0 to stop : ").strip()
-                    if _ not in ["", '1', '0']:
-                        continue
-                    break
-                else:
-                    break
+            # if empty_user_input_countt > empty_user_input_limit-1 :
+            #     print(f"Empty user_inputs for more than {empty_user_input_limit} times...")
+            #     for i in range(3):
+            #         _ = input("Press 1 or ENTER to continue, 0 to stop : ").strip()
+            #         if _ not in ["", '1', '0']:
+            #             continue
+            #         break
+            #     else:
+            #         break
 
-                if _ == '0':
-                    break
-                empty_user_input_countt = 0
-                continue
+            #     if _ == '0':
+            #         break
+            #     empty_user_input_countt = 0
+            #     continue
+            
+            user_input = STT()
+            countt += 1
             
             if not user_input:
                 empty_user_input_countt += 1
                 continue
+            if user_input == "<< EXIT >>":
+                break
             
             send_text(driver, user_input)
             empty_user_input_countt = 0
-            time.sleep(5)
+            time.sleep(3)
             gpt_responses = extract_assistant_texts(driver)
             # print(gpt_responses)
             if gpt_responses:
@@ -370,13 +484,15 @@ if __name__ == "__main__":
                 response = gpt_responses[-1]
                 print(gpt_responses[-1], end="\n")
 
+                response = response.replace("ダーリン", "dah-ring") # PREPROCESSION BEFORE TTS 
+                
                 tts_engine.cook_voice(text=response, 
                                       ref_audio_path=ref_audio)
                 tts_engine.play_voice(audio_path=out_audio_file)
                 empty_user_input_countt = 0
 
             user_input = ""
-            time.sleep(2)
+            time.sleep(0.5)
     else:
         print("Login unsuccessful. Try again after sometime ...")
 
