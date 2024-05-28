@@ -80,8 +80,8 @@ Feel free to ask if you need more translations or explanations, ダーリン."""
 print(textt)
 # Text to speech to a file
 # tts.tts_to_file(text="Hello world!", speaker_wav=ref_audio, language="en", file_path="output.wav")
-# tts.tts_to_file(text=textt, speaker_wav=ref_audio, language="en", file_path="output.wav")
-tts.tts_to_file(text=textt, language="en", file_path="output.wav")
+tts.tts_to_file(text=textt, speaker_wav=ref_audio, language="en", file_path="output.wav")
+# tts.tts_to_file(text=textt, language="en", file_path="output.wav")
 
 
 # PLAYING SOUND
