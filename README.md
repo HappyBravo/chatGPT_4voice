@@ -2,7 +2,7 @@
 
 With the introduction of ChatGPT-4o, I found that you can add some customisations to how ChatGPT response your question.
 
-I decided to giver her a personality. Similar to [character.ai](character.ai) 🌚. 
+I decided to giver her a personality (002 in my case). Similar to [character.ai](character.ai) 🌚. 
 Also, I thought of making it as a Assistant Chatbot like Google Assistant on Androif phones.
 
 *But as I went on building this project, I found that that cannot be done. Due to the limitations of libraries used in the project.* 🫤
