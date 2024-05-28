@@ -242,7 +242,7 @@ config = dotenv_values(".env")
 
 if __name__ == "__main__":
     driver = uc.Chrome(options=options)
-    driver.set_window_size(800, 600)
+    driver.set_window_size(1000, 800) # YOU MAY WANT TO ADJEST THIS ACCORDING TO YOUR SCREEN SIZE
     # driver.minimize_window()
 
     driver.get(chatgpt_url)
