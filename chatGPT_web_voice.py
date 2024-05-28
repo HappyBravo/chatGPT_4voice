@@ -52,7 +52,7 @@ def check_login_required(_driver):
     return 0
 
 def do_login(driver, user_email, user_password = ""):
-    time.sleep(5)
+    time.sleep(3)
     # wait = WebDriverWait(driver, 10)
     try :
         login_button = driver.find_element(By.XPATH, '//*[@id="__next"]/div[1]/div[1]/div/div/div/div/nav/div[2]/div[2]/button[2]')
@@ -248,7 +248,7 @@ if __name__ == "__main__":
     driver.get(chatgpt_url)
     # driver.implicitly_wait(5)
 
-    time.sleep(5)
+    time.sleep(3)
     
     logged_in = False
 
@@ -348,7 +348,7 @@ if __name__ == "__main__":
             stt_output = " ".join(full_sentences)
             if stt_output.strip():
                 print("You said - ")
-                print(" ".join(full_sentences), end = "\n")
+                print(" ".join(full_sentences))
             if _decide == "0":
                 stt_output = "<< EXIT >>"
         return stt_output
@@ -399,13 +399,13 @@ if __name__ == "__main__":
             
             send_text(driver, user_input)
             empty_user_input_countt = 0
-            time.sleep(3)
+            # time.sleep(3)
             gpt_responses = extract_assistant_texts(driver)
             # print(gpt_responses)
             if gpt_responses:
                 print("ChatGPT [002] -")
                 response = gpt_responses[-1]
-                print(gpt_responses[-1], end="\n")
+                print(gpt_responses[-1])
 
                 # # # # # # # # # # # # # 
                 # NEED TO MAKE A FUNCTION FOR PRE-PROCESSING
@@ -421,7 +421,7 @@ if __name__ == "__main__":
                 empty_user_input_countt = 0
 
             user_input = ""
-            time.sleep(0.5)
+            time.sleep(0.2)
     else:
         print("Login unsuccessful. Try again after sometime ...")
 
