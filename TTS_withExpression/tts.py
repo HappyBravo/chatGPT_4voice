@@ -53,35 +53,23 @@ class TTS_withExpression():
         print(f"Audio generated to '{output_file}'...")
 
     def checkPressSpace(self, key):
-        if key == Key.space : # or not pygame.mixer.get_busy():
-            # print("stopping audio due to SPACE key...")
-            # if self._sound:
-            #     self._sound.stop()
-            #     self._sound = None
-            # # else:
-            # #     pygame.mixer.stop()
-            # self.stop_event.set()
-            # time.sleep(1)
+        if key == Key.space :
             return False
         
     def monitor_audio_time(self):
-        # while pygame.mixer.get_busy():
         while True :
-            if (time.time() - self.audio_start_time > 1 + self.sound_length) or not self.listener:
+            if (time.time() - self.audio_start_time > 1 + self.sound_length) \
+                                                                or not self.listener:
                 if self._sound:
                     self._sound.stop()
                     self._sound = None
+                if self.listener:
                     self.listener.stop()
-                    if self.listener:
-                        self.listener = None
-                # else:
-                #     pygame.mixer.stop()
+                    self.listener = None
                 if self.audio_start_time:
                     print("Audio stopped due to timeout...")
-                # self.stop_event.set()
-                # time.sleep(1)
+                self.audio_start_time = 0
                 return False
-            # time.sleep(1)
 
     def listen_for_key_press(self):
         # Listen for space key press
@@ -131,10 +119,8 @@ class TTS_withExpression():
                 if not monitor_thread.is_alive() or not key_listener_thread.is_alive():
                     print("Stopping threads ...")
                     self.stop_event.set()
-                    # self.listener.stop()
-                    # self.listener = None
                     break
-                # time.sleep(1)
+            # time.sleep(1)
         return
 
         
